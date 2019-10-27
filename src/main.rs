@@ -21,23 +21,27 @@ impl Selector {
         Selector{ blocks, size }
     }
 
-    fn select(&self, n: u64) -> (u64,i32) {
+    fn select(&self, n: u64) -> (u64,(i32,i32)) {
         let mut blk: [u8;32] = self.blocks;
         let mut res: u64 = 0;
         let mut num = n;
         let mut i = self.size as u64;
-        let mut pos = -1;
+        let mut pos_a = -1;
+        let mut pos_b = -1;
         let mut p_cnt = 0;
         while i>0 {
             let idx = (num % i) as usize;
             num = num / i;
             let block = blk[idx] as u64;
             res = if block > 9 {
+                if block == 11 {
+                    pos_b = p_cnt;
+                }
                 p_cnt += 2;
                 res * 100 + block
             } else {
                 if block == 1 {
-                    pos = p_cnt;
+                    pos_a = p_cnt;
                 }
                 p_cnt += 1;
                 res * 10 + block
@@ -47,11 +51,11 @@ impl Selector {
             }
             i -= 1;
         }
-        (res,p_cnt-pos-1)
+        (res,(p_cnt-pos_a-1,p_cnt-pos_b-2))
     }
 }
 
-fn min_brk(min: u64, digits: u64, atomic: i32) -> Option<u64>
+fn min_brk(min: u64, digits: u64, atomic: (i32,i32)) -> Option<u64>
 {
     let mut denom = 10;
     let mut r: Option<u64> = None;
@@ -62,8 +66,8 @@ fn min_brk(min: u64, digits: u64, atomic: i32) -> Option<u64>
         if a < min {
             break;
         }
-        // println!("a:{} b:{} p:{} atom:{}",a,b,pos,atomic);
-        if b > a && ((a%10)!=1 || pos==atomic) {
+        // println!("a:{} b:{} p:{} atom:{:?} min: {}",a,b,pos,atomic, min);
+        if b > a && ((a%10)!=1 || pos==atomic.0 || pos==atomic.1 ) {
             match min_brk(a,b,atomic) {
                 Some(v) => { let part = a + v;
                              if let Some(cmin) = r {
@@ -98,19 +102,19 @@ fn main() {
         Ok(n)  => n,
         Err(e) => { println!("Could not parse number {:?}.", e); return; }
     };
-    // println!("{:?}", min_brk(0,98472106531,0));
+    println!("{:?}", min_brk(0,3527101198641,(0,5)));
     let cmb = fact(num);
     let s = Selector::new(num as usize);
 
     let max_v: Mutex<u64> = Mutex::new(0);
     let best = (0..cmb).into_par_iter().
-        map(|i| s.select(i)).fold(|| 0,|max,(v,p)| {
-            let sum = min_brk(0, v, p).unwrap();
+        map(|i| s.select(i)).fold(|| 0,|max,(v,ap)| {
+            let sum = min_brk(0, v, ap).unwrap();
             if sum >= max {
                 {
                     let mut mv = max_v.lock().unwrap();
                     if sum >= *mv {
-                        println!("{} {} (atomic: {})", sum, v, p);
+                        println!("{} {} (atomic: {:?})", sum, v, ap);
                         *mv = sum;
                     }
                     *mv // Return mutex protected max value
