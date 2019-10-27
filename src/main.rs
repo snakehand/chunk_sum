@@ -8,13 +8,13 @@ fn fact(n: u64) -> u64 {
 
 #[derive(Debug)]
 struct Selector {
-    blocks: [u8;32],
+    blocks: [u8;16],
     size:   usize
 }
 
 impl Selector {
     fn new(size: usize) -> Selector {
-        let mut blocks: [u8;32] = [0;32];
+        let mut blocks: [u8;16] = [0;16];
         for n in 0..size {
             blocks[n] = (n+1) as u8;
         }
@@ -22,7 +22,7 @@ impl Selector {
     }
 
     fn select(&self, n: u64) -> (u64,(i32,i32)) {
-        let mut blk: [u8;32] = self.blocks;
+        let mut blk: [u8;16] = self.blocks;
         let mut res: u64 = 0;
         let mut num = n;
         let mut i = self.size as u64;
@@ -93,6 +93,7 @@ fn min_brk(min: u64, digits: u64, atomic: (i32,i32)) -> Option<u64>
 
 
 fn main() {
+    // println!("{:?}", min_brk(0,3527101198641,(0,5)));
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         println!("usage: {} num", args[0]);
@@ -102,7 +103,11 @@ fn main() {
         Ok(n)  => n,
         Err(e) => { println!("Could not parse number {:?}.", e); return; }
     };
-    println!("{:?}", min_brk(0,3527101198641,(0,5)));
+    if num > 14 {
+        println!("number of blocks is too large, will overflow.");
+        return;
+    }
+
     let cmb = fact(num);
     let s = Selector::new(num as usize);
 
